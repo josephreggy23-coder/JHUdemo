@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BodyMaps CT Viewer</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1>BodyMaps CT Viewer</h1>
+  <p class="subtitle">
+    A browser-based CT + per-voxel annotation viewer, built for JHU BodyMaps
+    (Prof. Zongwei Zhou) "Developer" application &mdash; Project 1.
+    Sample case <code>BDMAP_00000338</code>, rendered with
+    <a href="https://github.com/niivue/niivue" target="_blank" rel="noopener">Niivue</a>.
+  </p>
+</header>
+
+<main>
+  <section id="viewer-panel">
+    <div id="glContainer">
+      <canvas id="gl1"></canvas>
+    </div>
+    <div id="crosshair-readout">Voxel: &mdash; &nbsp;|&nbsp; Intensity: &mdash;</div>
+  </section>
+
+  <aside id="controls">
+    <div class="control-group">
+      <h2>View</h2>
+      <div class="btn-row" id="layout-buttons">
+        <button data-layout="multi" class="active">Axial / Coronal / Sagittal</button>
+        <button data-layout="axial">Axial</button>
+        <button data-layout="coronal">Coronal</button>
+        <button data-layout="sagittal">Sagittal</button>
+        <button data-layout="render">3D Render</button>
+      </div>
+      <label class="checkbox-row">
+        <input type="checkbox" id="crosshairToggle" checked />
+        Show crosshair
+      </label>
+    </div>
+
+    <div class="control-group">
+      <h2>CT Window / Level</h2>
+      <label>Brightness (window center)
+        <input type="range" id="windowCenter" min="-1000" max="1000" value="40" />
+      </label>
+      <label>Contrast (window width)
+        <input type="range" id="windowWidth" min="1" max="2500" value="400" />
+      </label>
+      <div class="btn-row">
+        <button id="presetSoftTissue">Soft tissue</button>
+        <button id="presetLung">Lung</button>
+        <button id="presetBone">Bone</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <h2>Segmentation Overlay</h2>
+      <label>Overlay opacity
+        <input type="range" id="maskOpacity" min="0" max="100" value="55" />
+      </label>
+      <div id="organList" class="organ-list">
+        <p class="loading">Loading organs&hellip;</p>
+      </div>
+      <div class="btn-row">
+        <button id="selectAll">All</button>
+        <button id="selectNone">None</button>
+      </div>
+    </div>
+
+    <div class="control-group" id="status-group">
+      <h2>Status</h2>
+      <p id="statusText">Loading CT volume&hellip;</p>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <p>
+    Data: JHU BodyMaps sample case
+    <a href="http://www.cs.jhu.edu/~zongwei/dataset/BDMAP_00000338.zip" target="_blank" rel="noopener">BDMAP_00000338</a>
+    (CT + 8 organ segmentations, NIfTI). Built with
+    <a href="https://github.com/niivue/niivue" target="_blank" rel="noopener">Niivue</a>, an open-source WebGL2 medical
+    image viewer &mdash; no backend, runs entirely in the browser.
+  </p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
