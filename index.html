@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<noscript>This viewer requires JavaScript and WebGL2 (Niivue renders entirely client-side).</noscript>
 <header>
   <h1>BodyMaps CT Viewer</h1>
   <p class="subtitle">
@@ -21,6 +22,10 @@
   <section id="viewer-panel">
     <div id="glContainer">
       <canvas id="gl1"></canvas>
+      <div id="loadingOverlay">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Loading CT volume &amp; segmentation masks&hellip;</p>
+      </div>
     </div>
     <div id="crosshair-readout">Voxel: &mdash; &nbsp;|&nbsp; Intensity: &mdash;</div>
   </section>
@@ -28,12 +33,12 @@
   <aside id="controls">
     <div class="control-group">
       <h2>View</h2>
-      <div class="btn-row" id="layout-buttons">
-        <button data-layout="multi" class="active">Axial / Coronal / Sagittal</button>
-        <button data-layout="axial">Axial</button>
-        <button data-layout="coronal">Coronal</button>
-        <button data-layout="sagittal">Sagittal</button>
-        <button data-layout="render">3D Render</button>
+      <div class="btn-row" id="layout-buttons" role="group" aria-label="Slice layout">
+        <button data-layout="multi" class="active" aria-pressed="true">Axial / Coronal / Sagittal</button>
+        <button data-layout="axial" aria-pressed="false">Axial</button>
+        <button data-layout="coronal" aria-pressed="false">Coronal</button>
+        <button data-layout="sagittal" aria-pressed="false">Sagittal</button>
+        <button data-layout="render" aria-pressed="false">3D Render</button>
       </div>
       <label class="checkbox-row">
         <input type="checkbox" id="crosshairToggle" checked />
@@ -81,7 +86,7 @@
   <p>
     Data: JHU BodyMaps sample case
     <a href="http://www.cs.jhu.edu/~zongwei/dataset/BDMAP_00000338.zip" target="_blank" rel="noopener">BDMAP_00000338</a>
-    (CT + 8 organ segmentations, NIfTI). Built with
+    (CT + 9 organ segmentations, NIfTI). Built with
     <a href="https://github.com/niivue/niivue" target="_blank" rel="noopener">Niivue</a>, an open-source WebGL2 medical
     image viewer &mdash; no backend, runs entirely in the browser.
   </p>

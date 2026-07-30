@@ -1,3 +1,7 @@
+// Niivue is a self-contained WebGL2 medical imaging renderer: it understands
+// NIfTI natively, needs no backend/build step, and handles slice + volume
+// rendering, colormaps, and windowing out of the box. That's what makes a
+// "3D Slicer in the browser" demo like this feasible as a static site.
 import { Niivue } from "https://esm.sh/@niivue/niivue@0.69.0";
 
 // ---- Organs in the sample case (BDMAP_00000338), each assigned a distinct color ----
@@ -27,6 +31,11 @@ const SWATCH_COLORS = {
 
 const statusText = document.getElementById("statusText");
 const organListEl = document.getElementById("organList");
+const loadingOverlay = document.getElementById("loadingOverlay");
+
+// Populated by buildOrganList(); avoids re-querying the DOM for every
+// checkbox on every opacity/select-all/select-none interaction.
+let organCheckboxes = [];
 
 function setStatus(msg) {
   statusText.textContent = msg;
@@ -59,6 +68,11 @@ function handleLocationChange(data) {
 async function init() {
   setStatus("Loading CT volume (16 MB)…");
 
+  // Each organ ships as its own single-label NIfTI mask (BodyMaps' native
+  // export format) rather than one combined multi-label volume. Loading them
+  // as separate Niivue overlays — instead of merging them first — is what
+  // lets each organ get its own colormap and be toggled independently below,
+  // mirroring how 3D Slicer treats segments.
   const volumeList = [
     {
       url: "data/ct.nii.gz",
@@ -84,6 +98,7 @@ async function init() {
   nv.updateGLVolume();
 
   buildOrganList();
+  loadingOverlay.classList.add("hidden");
   setStatus(
     `Loaded CT (${nv.volumes[0].dims.slice(1, 4).join("×")} voxels) + ${ORGANS.length} organ masks.`
   );
@@ -98,8 +113,8 @@ function applyWindow(center, width) {
 
 function buildOrganList() {
   organListEl.innerHTML = "";
-  ORGANS.forEach((organ, i) => {
-    const volIdx = i + 1; // 0 is CT
+  organCheckboxes = ORGANS.map((organ, i) => {
+    const volIdx = i + 1; // volume 0 is the CT background
     const row = document.createElement("div");
     row.className = "organ-row";
 
@@ -112,8 +127,7 @@ function buildOrganList() {
     checkbox.checked = true;
     checkbox.id = `organ-${i}`;
     checkbox.addEventListener("change", () => {
-      const opacitySlider = document.getElementById("maskOpacity");
-      const baseOpacity = Number(opacitySlider.value) / 100;
+      const baseOpacity = Number(document.getElementById("maskOpacity").value) / 100;
       nv.setOpacity(volIdx, checkbox.checked ? baseOpacity : 0);
     });
 
@@ -125,6 +139,8 @@ function buildOrganList() {
     row.appendChild(checkbox);
     row.appendChild(label);
     organListEl.appendChild(row);
+
+    return { checkbox, volIdx };
   });
 }
 
@@ -158,28 +174,22 @@ document.getElementById("presetBone").addEventListener("click", () => {
 
 document.getElementById("maskOpacity").addEventListener("input", (e) => {
   const val = Number(e.target.value) / 100;
-  ORGANS.forEach((_, i) => {
-    const volIdx = i + 1;
-    const checkbox = document.getElementById(`organ-${i}`);
-    if (checkbox && checkbox.checked) {
-      nv.setOpacity(volIdx, val);
-    }
+  organCheckboxes.forEach(({ checkbox, volIdx }) => {
+    if (checkbox.checked) nv.setOpacity(volIdx, val);
   });
 });
 
 document.getElementById("selectAll").addEventListener("click", () => {
-  ORGANS.forEach((_, i) => {
-    const checkbox = document.getElementById(`organ-${i}`);
+  const val = Number(document.getElementById("maskOpacity").value) / 100;
+  organCheckboxes.forEach(({ checkbox, volIdx }) => {
     checkbox.checked = true;
-    const val = Number(document.getElementById("maskOpacity").value) / 100;
-    nv.setOpacity(i + 1, val);
+    nv.setOpacity(volIdx, val);
   });
 });
 document.getElementById("selectNone").addEventListener("click", () => {
-  ORGANS.forEach((_, i) => {
-    const checkbox = document.getElementById(`organ-${i}`);
+  organCheckboxes.forEach(({ checkbox, volIdx }) => {
     checkbox.checked = false;
-    nv.setOpacity(i + 1, 0);
+    nv.setOpacity(volIdx, 0);
   });
 });
 
@@ -192,8 +202,12 @@ document.getElementById("crosshairToggle").addEventListener("change", (e) => {
 const layoutButtons = document.querySelectorAll("#layout-buttons button");
 layoutButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    layoutButtons.forEach((b) => b.classList.remove("active"));
+    layoutButtons.forEach((b) => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
     btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
     switch (btn.dataset.layout) {
       case "multi":
         nv.setSliceType(nv.sliceTypeMultiplanar);
@@ -216,5 +230,7 @@ layoutButtons.forEach((btn) => {
 
 init().catch((err) => {
   console.error(err);
+  loadingOverlay.querySelector("p").textContent =
+    "Failed to load — this viewer needs a browser with WebGL2 support.";
   setStatus(`Failed to load volumes: ${err.message}`);
 });
