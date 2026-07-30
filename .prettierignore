@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+public/data
+public/*.png
+screenshot.png
+package-lock.json

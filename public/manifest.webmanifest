@@ -1,0 +1,11 @@
+{
+  "name": "BodyMaps Segmentation Review",
+  "short_name": "BodyMaps",
+  "description": "Private, browser-based CT and segmentation review.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07100f",
+  "theme_color": "#09100f",
+  "categories": ["medical", "productivity", "utilities"]
+}
