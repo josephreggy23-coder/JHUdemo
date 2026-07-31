@@ -77,6 +77,7 @@ const toast = must<HTMLElement>("#toast");
 const fileInput = must<HTMLInputElement>("#fileInput");
 const folderInput = must<HTMLInputElement>("#folderInput");
 const structureList = must<HTMLElement>("#structureList");
+const structureListStatus = must<HTMLElement>("#structureListStatus");
 const structureSearch = must<HTMLInputElement>("#structureSearch");
 const windowPreset = must<HTMLSelectElement>("#windowPreset");
 const windowCenter = must<HTMLInputElement>("#windowCenter");
@@ -88,7 +89,16 @@ const interpolationToggle = must<HTMLInputElement>("#interpolationToggle");
 const brushSize = must<HTMLInputElement>("#brushSize");
 const reviewStatus = must<HTMLSelectElement>("#reviewStatus");
 const reviewNotes = must<HTMLTextAreaElement>("#reviewNotes");
+const reviewStatusIcon = must<HTMLElement>("#reviewStatusIcon");
+const savedState = must<HTMLElement>("#savedState");
+const savedStateLabel = must<HTMLElement>("#savedStateLabel");
 const helpDialog = must<HTMLDialogElement>("#helpDialog");
+const sidebarTabs = Array.from(
+  document.querySelectorAll<HTMLButtonElement>("[data-sidebar-tab]"),
+);
+const sidebarPanels = Array.from(
+  document.querySelectorAll<HTMLElement>("[data-sidebar-panel]"),
+);
 
 let structures: ViewerStructure[] = [];
 let currentCaseName = "BDMAP_00000338";
@@ -103,8 +113,8 @@ let dragDepth = 0;
 let statsWorker: Worker | null = null;
 
 const nv = new Niivue({
-  backColor: [0.005, 0.012, 0.011, 1],
-  crosshairColor: [0.42, 0.89, 0.76, 0.9],
+  backColor: [0, 0, 0, 1],
+  crosshairColor: [0, 0.48, 1, 0.9],
   crosshairWidth: 1,
   crosshairWidthUnit: "voxels",
   dragAndDropEnabled: false,
@@ -121,10 +131,10 @@ const nv = new Niivue({
   multiplanarShowRender: SHOW_RENDER.ALWAYS,
   sliceType: SLICE_TYPE.MULTIPLANAR,
   textHeight: 0.022,
-  measureLineColor: [0.42, 0.89, 0.76, 1],
-  measureTextColor: [0.92, 0.98, 0.96, 1],
+  measureLineColor: [1, 0.62, 0.04, 1],
+  measureTextColor: [1, 1, 1, 1],
   showMeasureUnits: true,
-  loadingText: "Loading medical image…",
+  loadingText: "Loading medical image...",
 });
 
 nv.onLocationChange = (rawLocation) => {
@@ -577,6 +587,13 @@ function renderStructures(): void {
   const shown = structures.filter((structure) =>
     structure.name.toLowerCase().includes(query),
   );
+  const visibleCount = shown.filter((structure) => structure.visible).length;
+  structureListStatus.textContent =
+    structures.length === 0
+      ? "No structures loaded."
+      : query
+        ? `${shown.length} matching structures. ${visibleCount} visible.`
+        : `${visibleCount} of ${structures.length} structures visible.`;
   structureList.replaceChildren();
   if (shown.length === 0) {
     const empty = document.createElement("p");
@@ -797,6 +814,7 @@ function resetView(): void {
 function reviewFromStorage(): ReviewDraft {
   try {
     const stored = localStorage.getItem(safeCaseStorageKey(currentCaseName));
+    updateSavedState(true);
     if (!stored) return { ...EMPTY_REVIEW, flaggedStructures: [] };
     const parsed = JSON.parse(stored) as Partial<ReviewDraft>;
     return {
@@ -812,14 +830,37 @@ function reviewFromStorage(): ReviewDraft {
         : [],
     };
   } catch {
+    updateSavedState(false);
     return { ...EMPTY_REVIEW, flaggedStructures: [] };
   }
+}
+
+function updateReviewStatusVisual(): void {
+  const status = reviewStatus.value as ReviewStatus;
+  reviewStatusIcon.classList.remove("needs-attention", "approved");
+  if (status === "approved") {
+    reviewStatusIcon.textContent = "✓";
+    reviewStatusIcon.classList.add("approved");
+  } else if (status === "needs-attention") {
+    reviewStatusIcon.textContent = "!";
+    reviewStatusIcon.classList.add("needs-attention");
+  } else {
+    reviewStatusIcon.textContent = "—";
+  }
+}
+
+function updateSavedState(saved: boolean): void {
+  savedState.classList.toggle("error", !saved);
+  savedStateLabel.textContent = saved
+    ? "Saved on this device"
+    : "Draft could not be saved";
 }
 
 function loadReview(): void {
   review = reviewFromStorage();
   reviewStatus.value = review.status;
   reviewNotes.value = review.notes;
+  updateReviewStatusVisual();
   structures.forEach((structure) => {
     structure.flagged = review.flaggedStructures.includes(structure.id);
   });
@@ -837,12 +878,15 @@ function syncReviewFromInterface(): void {
 
 function saveReview(): void {
   syncReviewFromInterface();
+  updateReviewStatusVisual();
   try {
     localStorage.setItem(
       safeCaseStorageKey(currentCaseName),
       JSON.stringify(review),
     );
+    updateSavedState(true);
   } catch {
+    updateSavedState(false);
     showToast("This browser could not save the review draft locally.", true);
   }
 }
@@ -924,6 +968,37 @@ function populatePresets(): void {
   });
 }
 
+function setSidebarPanel(panelName: string, focusTab = false): void {
+  const activeTab = sidebarTabs.find(
+    (tab) => tab.dataset.sidebarTab === panelName,
+  );
+  if (!activeTab) return;
+
+  sidebarTabs.forEach((tab) => {
+    const isActive = tab === activeTab;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+    tab.tabIndex = isActive ? 0 : -1;
+  });
+  sidebarPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.sidebarPanel !== panelName;
+  });
+
+  if (focusTab) activeTab.focus();
+}
+
+function moveSidebarTab(
+  currentTab: HTMLButtonElement,
+  direction: number,
+): void {
+  const currentIndex = sidebarTabs.indexOf(currentTab);
+  if (currentIndex < 0) return;
+  const nextIndex =
+    (currentIndex + direction + sidebarTabs.length) % sidebarTabs.length;
+  const nextTab = sidebarTabs[nextIndex];
+  if (nextTab) setSidebarPanel(nextTab.dataset.sidebarTab ?? "study", true);
+}
+
 function bindInterface(): void {
   must<HTMLButtonElement>("#openCaseButton").addEventListener("click", () =>
     fileInput.click(),
@@ -946,10 +1021,39 @@ function bindInterface(): void {
   document
     .querySelectorAll<HTMLButtonElement>("[data-mode]")
     .forEach((button) => {
-      button.addEventListener("click", () =>
-        setMode(button.dataset.mode ?? "inspect"),
-      );
+      button.addEventListener("click", () => {
+        const mode = button.dataset.mode ?? "inspect";
+        setMode(mode);
+        if (mode === "paint" || mode === "erase") {
+          setSidebarPanel("segments");
+        }
+      });
     });
+
+  sidebarTabs.forEach((tab) => {
+    tab.addEventListener("click", () =>
+      setSidebarPanel(tab.dataset.sidebarTab ?? "study"),
+    );
+    tab.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        moveSidebarTab(tab, -1);
+        event.preventDefault();
+      } else if (event.key === "ArrowRight") {
+        moveSidebarTab(tab, 1);
+        event.preventDefault();
+      } else if (event.key === "Home") {
+        const firstTab = sidebarTabs[0];
+        if (firstTab)
+          setSidebarPanel(firstTab.dataset.sidebarTab ?? "study", true);
+        event.preventDefault();
+      } else if (event.key === "End") {
+        const lastTab = sidebarTabs.at(-1);
+        if (lastTab)
+          setSidebarPanel(lastTab.dataset.sidebarTab ?? "study", true);
+        event.preventDefault();
+      }
+    });
+  });
 
   windowPreset.addEventListener("change", () => {
     const preset = WINDOW_PRESETS.find(

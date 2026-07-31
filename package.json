@@ -5,11 +5,11 @@
   "description": "A private, browser-based CT and segmentation review workspace for JHU BodyMaps.",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build && node scripts/prepare-sites.mjs",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "dev": "vite --configLoader runner",
+    "build": "tsc --noEmit && vite build --configLoader runner && node scripts/prepare-sites.mjs",
+    "preview": "vite preview --configLoader runner",
+    "test": "vitest run --configLoader runner",
+    "test:watch": "vitest --configLoader runner",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

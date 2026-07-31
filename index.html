@@ -7,8 +7,8 @@
       name="description"
       content="A private, browser-based workspace for reviewing CT scans and segmentation masks."
     />
-    <meta name="theme-color" content="#09100f" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#f5f5f7" />
+    <meta name="color-scheme" content="light" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="BodyMaps Review" />
     <meta
@@ -35,30 +35,50 @@
     <div class="app-shell">
       <header class="topbar">
         <div class="brand" aria-label="BodyMaps Review">
-          <span class="brand-mark" aria-hidden="true">BM</span>
-          <span>
-            <strong>BodyMaps</strong>
-            <small>Segmentation review workspace</small>
+          <span class="brand-mark" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
           </span>
+          <span class="brand-name">BodyMaps</span>
+          <span class="brand-section">Review</span>
+        </div>
+
+        <div class="case-summary">
+          <span class="case-label">Case</span>
+          <h1 id="caseName">BDMAP_00000338</h1>
+          <span class="ready-pill" id="caseState">Loading</span>
         </div>
 
         <div class="privacy-badge" title="Files stay on this device">
-          <span class="privacy-dot" aria-hidden="true"></span>
-          Local processing
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" />
+            <rect x="2.75" y="7" width="10.5" height="7" rx="2" />
+          </svg>
+          On device
         </div>
 
         <div class="topbar-actions">
-          <button class="button primary" id="openCaseButton" type="button">
-            Open case
+          <button
+            class="button secondary"
+            id="openFolderButton"
+            type="button"
+            aria-label="Open DICOM folder"
+          >
+            Folder
           </button>
-          <button class="button" id="openFolderButton" type="button">
-            Open folder
+          <button
+            class="button primary"
+            id="openCaseButton"
+            type="button"
+            aria-label="Open case files"
+          >
+            Open
           </button>
           <button
             class="icon-button"
             id="helpButton"
             type="button"
             aria-label="Open help"
+            title="Help"
           >
             ?
           </button>
@@ -82,38 +102,50 @@
                 data-layout="multi"
                 aria-pressed="true"
                 type="button"
+                title="Four-up view (F)"
               >
-                Four-up
+                <span class="quad-icon" aria-hidden="true"
+                  ><i></i><i></i><i></i><i></i
+                ></span>
+                <span>Four-up</span>
               </button>
               <button
                 class="tool"
                 data-layout="axial"
                 aria-pressed="false"
+                aria-label="Axial view"
                 type="button"
+                title="Axial view (A)"
               >
-                Axial
+                A
               </button>
               <button
                 class="tool"
                 data-layout="coronal"
                 aria-pressed="false"
+                aria-label="Coronal view"
                 type="button"
+                title="Coronal view (C)"
               >
-                Coronal
+                C
               </button>
               <button
                 class="tool"
                 data-layout="sagittal"
                 aria-pressed="false"
+                aria-label="Sagittal view"
                 type="button"
+                title="Sagittal view (S)"
               >
-                Sagittal
+                S
               </button>
               <button
                 class="tool"
                 data-layout="render"
                 aria-pressed="false"
+                aria-label="3D view"
                 type="button"
+                title="3D view (V)"
               >
                 3D
               </button>
@@ -135,6 +167,7 @@
                 data-mode="ruler"
                 aria-pressed="false"
                 type="button"
+                title="Ruler (R)"
               >
                 Ruler
               </button>
@@ -166,11 +199,21 @@
 
             <div class="toolbar-spacer"></div>
 
-            <button class="tool" id="resetViewButton" type="button">
-              Reset view
+            <button
+              class="tool toolbar-action"
+              id="resetViewButton"
+              type="button"
+              aria-label="Reset view"
+            >
+              Reset
             </button>
-            <button class="tool" id="savePngButton" type="button">
-              Save PNG
+            <button
+              class="tool toolbar-action"
+              id="savePngButton"
+              type="button"
+              aria-label="Save viewer snapshot"
+            >
+              Snapshot
             </button>
           </div>
 
@@ -179,6 +222,10 @@
             id="dropTarget"
             aria-label="Medical image viewer"
           >
+            <div class="viewport-label" aria-hidden="true">
+              CT <output id="windowReadout">W 400&nbsp;&nbsp;L 40</output>
+            </div>
+
             <canvas
               id="gl1"
               aria-label="Interactive CT scan with linked axial, coronal, sagittal and 3D views"
@@ -190,10 +237,10 @@
               role="status"
               aria-live="polite"
             >
-              <div class="loader-orbit" aria-hidden="true"><span></span></div>
+              <div class="loader" aria-hidden="true"></div>
               <strong id="loadingTitle">Preparing sample case</strong>
               <p id="loadingDetail">
-                Loading CT volume and nine segmentation masks…
+                Loading CT volume and segmentation masks...
               </p>
               <div
                 class="progress-track"
@@ -208,261 +255,368 @@
             </div>
 
             <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
-              <strong>Drop a case to review</strong>
-              <span>NIfTI scan + masks, or a DICOM folder</span>
+              <div class="drop-icon" aria-hidden="true">+</div>
+              <strong>Drop case</strong>
+              <span>NIfTI or DICOM</span>
             </div>
 
             <div class="canvas-corner-note" id="canvasHint">
-              Scroll slices · right-drag window/level · middle-drag pan
+              Scroll slices &nbsp;·&nbsp; Right-drag window &nbsp;·&nbsp;
+              Middle-drag pan
             </div>
           </section>
 
           <footer class="readout-bar" aria-label="Current image location">
             <span><b>Voxel</b> <output id="voxelReadout">—</output></span>
             <span><b>Patient</b> <output id="patientReadout">—</output></span>
-            <span
-              ><b>Intensity</b> <output id="intensityReadout">—</output></span
-            >
-            <span
-              ><b>Structure</b> <output id="structureReadout">—</output></span
-            >
+            <span><b>HU</b> <output id="intensityReadout">—</output></span>
+            <span><b>Mask</b> <output id="structureReadout">—</output></span>
             <span class="readout-status" id="renderStatus">WebGL2 · local</span>
           </footer>
         </main>
 
         <aside class="sidebar" aria-label="Review controls">
-          <section class="case-summary">
-            <div>
-              <span class="eyebrow">Current case</span>
-              <h1 id="caseName">BDMAP_00000338</h1>
-            </div>
-            <span class="ready-pill" id="caseState">Loading</span>
-            <dl class="case-metadata">
-              <div>
-                <dt>Matrix</dt>
-                <dd id="dimensionsValue">—</dd>
-              </div>
-              <div>
-                <dt>Spacing</dt>
-                <dd id="spacingValue">—</dd>
-              </div>
-              <div>
-                <dt>Source</dt>
-                <dd id="sourceValue">Bundled NIfTI</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section class="panel">
-            <div class="panel-heading">
-              <div>
-                <span class="eyebrow">Display</span>
-                <h2>CT window</h2>
-              </div>
-              <output class="window-readout" id="windowReadout"
-                >W 400 · L 40</output
-              >
-            </div>
-
-            <label class="field-label" for="windowPreset"
-              >Clinical preset</label
-            >
-            <select id="windowPreset"></select>
-            <div class="range-pair">
-              <label>
-                <span>Level <output id="centerValue">40</output></span>
-                <input
-                  id="windowCenter"
-                  type="range"
-                  min="-1000"
-                  max="1000"
-                  step="1"
-                  value="40"
-                />
-              </label>
-              <label>
-                <span>Width <output id="widthValue">400</output></span>
-                <input
-                  id="windowWidth"
-                  type="range"
-                  min="1"
-                  max="2500"
-                  step="1"
-                  value="400"
-                />
-              </label>
-            </div>
-
-            <div class="toggle-grid">
-              <label class="switch-row">
-                <span>Crosshair</span>
-                <input id="crosshairToggle" type="checkbox" checked />
-              </label>
-              <label class="switch-row">
-                <span>Radiological</span>
-                <input id="radiologicalToggle" type="checkbox" checked />
-              </label>
-              <label class="switch-row">
-                <span>Smooth slices</span>
-                <input id="interpolationToggle" type="checkbox" checked />
-              </label>
-            </div>
-          </section>
-
-          <section class="panel structures-panel">
-            <div class="panel-heading">
-              <div>
-                <span class="eyebrow">Segmentations</span>
-                <h2>Structures</h2>
-              </div>
-              <span class="count-badge" id="structureCount">0</span>
-            </div>
-
-            <div class="structure-actions">
-              <label class="search-field">
-                <span class="sr-only">Search structures</span>
-                <input
-                  id="structureSearch"
-                  type="search"
-                  placeholder="Search structures"
-                />
-              </label>
-              <button class="text-button" id="showAllButton" type="button">
-                All
-              </button>
-              <button class="text-button" id="hideAllButton" type="button">
-                None
-              </button>
-            </div>
-
-            <label class="opacity-field">
-              <span
-                >Overlay opacity <output id="opacityValue">55%</output></span
-              >
-              <input
-                id="maskOpacity"
-                type="range"
-                min="0"
-                max="100"
-                value="55"
-              />
-            </label>
-
-            <div class="structure-list" id="structureList" aria-live="polite">
-              <p class="empty-state">
-                Structures will appear after the case loads.
-              </p>
-            </div>
-
+          <nav class="sidebar-tabs" role="tablist" aria-label="Inspector">
             <button
-              class="button full"
-              id="downloadStatsButton"
+              class="sidebar-tab active"
+              id="studyTab"
+              data-sidebar-tab="study"
               type="button"
-              disabled
+              role="tab"
+              aria-controls="studyPanel"
+              aria-selected="true"
             >
-              Export statistics CSV
+              Study
             </button>
-          </section>
-
-          <section class="panel editing-panel">
-            <div class="panel-heading">
-              <div>
-                <span class="eyebrow">Correction</span>
-                <h2>Mask editing</h2>
-              </div>
-              <span class="experimental-pill">Local</span>
-            </div>
-            <p class="panel-copy">
-              Paint or erase a correction layer without changing the original
-              masks.
-            </p>
-            <label class="field-label" for="brushSize">Brush size</label>
-            <div class="inline-range">
-              <input id="brushSize" type="range" min="1" max="12" value="2" />
-              <output id="brushSizeValue">2 vox</output>
-            </div>
-            <div class="button-row">
-              <button class="button" id="undoButton" type="button">
-                Undo edit
-              </button>
-              <button class="button" id="saveMaskButton" type="button">
-                Export NIfTI
-              </button>
-            </div>
             <button
-              class="text-button danger"
-              id="clearToolsButton"
+              class="sidebar-tab"
+              id="segmentsTab"
+              data-sidebar-tab="segments"
               type="button"
+              role="tab"
+              aria-controls="segmentsPanel"
+              aria-selected="false"
+              tabindex="-1"
             >
-              Clear measurements and correction layer
+              Segments
             </button>
-          </section>
-
-          <section class="panel review-panel">
-            <div class="panel-heading">
-              <div>
-                <span class="eyebrow">Quality control</span>
-                <h2>Review decision</h2>
-              </div>
-              <span class="autosave-label">Saved locally</span>
-            </div>
-            <label class="field-label" for="reviewStatus">Case status</label>
-            <select id="reviewStatus">
-              <option value="not-reviewed">Not reviewed</option>
-              <option value="needs-attention">Needs attention</option>
-              <option value="approved">Approved</option>
-            </select>
-            <label class="field-label notes-label" for="reviewNotes"
-              >Reviewer notes</label
+            <button
+              class="sidebar-tab"
+              id="reviewTab"
+              data-sidebar-tab="review"
+              type="button"
+              role="tab"
+              aria-controls="reviewPanel"
+              aria-selected="false"
+              tabindex="-1"
             >
-            <textarea
-              id="reviewNotes"
-              rows="4"
-              placeholder="Record segmentation findings or required corrections…"
-            ></textarea>
-            <button class="button full" id="exportReportButton" type="button">
-              Export QC report
+              Review
             </button>
-          </section>
+          </nav>
 
-          <section class="privacy-note">
-            <strong>Data handling</strong>
-            <p>Files stay on this device and are not uploaded.</p>
-          </section>
+          <div class="sidebar-panels">
+            <section
+              class="sidebar-panel"
+              id="studyPanel"
+              data-sidebar-panel="study"
+              role="tabpanel"
+              aria-labelledby="studyTab"
+            >
+              <section class="inspector-section study-overview">
+                <div class="section-heading">
+                  <div>
+                    <span class="eyebrow">Study</span>
+                    <h2>CT volume</h2>
+                  </div>
+                </div>
+                <dl class="case-metadata">
+                  <div>
+                    <dt>Matrix</dt>
+                    <dd id="dimensionsValue">—</dd>
+                  </div>
+                  <div>
+                    <dt>Spacing</dt>
+                    <dd id="spacingValue">—</dd>
+                  </div>
+                  <div>
+                    <dt>Source</dt>
+                    <dd id="sourceValue">Bundled NIfTI</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section class="inspector-section">
+                <div class="section-heading compact">
+                  <h2>Window</h2>
+                </div>
+
+                <label class="field-label" for="windowPreset">Preset</label>
+                <select id="windowPreset"></select>
+
+                <div class="range-pair">
+                  <label>
+                    <span>Level <output id="centerValue">40</output></span>
+                    <input
+                      id="windowCenter"
+                      type="range"
+                      min="-1000"
+                      max="1000"
+                      step="1"
+                      value="40"
+                    />
+                  </label>
+                  <label>
+                    <span>Width <output id="widthValue">400</output></span>
+                    <input
+                      id="windowWidth"
+                      type="range"
+                      min="1"
+                      max="2500"
+                      step="1"
+                      value="400"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section class="inspector-section view-options">
+                <h2 class="sr-only">View options</h2>
+                <label class="switch-row">
+                  <span>Crosshair</span>
+                  <input id="crosshairToggle" type="checkbox" checked />
+                </label>
+                <label class="switch-row">
+                  <span>Radiological</span>
+                  <input id="radiologicalToggle" type="checkbox" checked />
+                </label>
+                <label class="switch-row">
+                  <span>Smooth slices</span>
+                  <input id="interpolationToggle" type="checkbox" checked />
+                </label>
+              </section>
+            </section>
+
+            <section
+              class="sidebar-panel"
+              id="segmentsPanel"
+              data-sidebar-panel="segments"
+              role="tabpanel"
+              aria-labelledby="segmentsTab"
+              hidden
+            >
+              <section class="body-map-card" aria-label="Schematic body map">
+                <div class="body-map-copy">
+                  <span class="eyebrow">Reference</span>
+                  <strong>Body map</strong>
+                  <span
+                    ><output id="structureCount">0</output> masks loaded</span
+                  >
+                </div>
+                <svg
+                  class="body-map"
+                  viewBox="0 0 124 244"
+                  role="img"
+                  aria-label="Schematic front body map with the torso highlighted"
+                >
+                  <path
+                    class="body-outline"
+                    d="M62 5c-12 0-20 9-20 21 0 9 5 16 11 20l-3 9-17 10c-7 4-11 12-12 20l-4 43 10 1 5-35 5 52-8 88h17l15-70h2l15 70h17l-8-88 5-52 5 35 10-1-4-43c-1-8-5-16-12-20L74 55l-3-9c6-4 11-11 11-20C82 14 74 5 62 5Z"
+                  />
+                  <path class="body-axis" d="M62 52v111" />
+                  <path
+                    class="torso-highlight"
+                    d="M39 74c7-9 39-9 46 0l-4 62c-8 13-30 13-38 0Z"
+                  />
+                  <path class="region-line" d="M42 104h40M44 127h36" />
+                  <circle class="focus-ring" cx="62" cy="111" r="31" />
+                </svg>
+              </section>
+
+              <section class="inspector-section structures-panel">
+                <div class="structure-actions">
+                  <label class="search-field">
+                    <span class="sr-only">Search structures</span>
+                    <input
+                      id="structureSearch"
+                      type="search"
+                      placeholder="Search structures"
+                    />
+                  </label>
+                  <button
+                    class="text-button"
+                    id="showAllButton"
+                    type="button"
+                    aria-label="Show all structures"
+                  >
+                    All
+                  </button>
+                  <button
+                    class="text-button"
+                    id="hideAllButton"
+                    type="button"
+                    aria-label="Hide all structures"
+                  >
+                    None
+                  </button>
+                </div>
+
+                <label class="opacity-field">
+                  <span>Opacity <output id="opacityValue">55%</output></span>
+                  <input
+                    id="maskOpacity"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value="55"
+                  />
+                </label>
+
+                <p
+                  class="sr-only"
+                  id="structureListStatus"
+                  aria-live="polite"
+                ></p>
+                <div class="structure-list" id="structureList">
+                  <p class="empty-state">
+                    Structures appear when the case loads.
+                  </p>
+                </div>
+
+                <button
+                  class="button secondary full"
+                  id="downloadStatsButton"
+                  type="button"
+                  disabled
+                >
+                  Export statistics
+                </button>
+              </section>
+
+              <section class="inspector-section editing-panel">
+                <div class="section-heading compact">
+                  <h2>Edit mask</h2>
+                  <span class="local-label">Local layer</span>
+                </div>
+                <label class="field-label" for="brushSize">Brush size</label>
+                <div class="inline-range">
+                  <input
+                    id="brushSize"
+                    type="range"
+                    min="1"
+                    max="12"
+                    value="2"
+                  />
+                  <output id="brushSizeValue">2 vox</output>
+                </div>
+                <div class="button-row">
+                  <button
+                    class="button secondary"
+                    id="undoButton"
+                    type="button"
+                  >
+                    Undo
+                  </button>
+                  <button
+                    class="button secondary"
+                    id="saveMaskButton"
+                    type="button"
+                  >
+                    Export NIfTI
+                  </button>
+                </div>
+                <button
+                  class="text-button danger"
+                  id="clearToolsButton"
+                  type="button"
+                >
+                  Clear edits and measurements
+                </button>
+              </section>
+            </section>
+
+            <section
+              class="sidebar-panel"
+              id="reviewPanel"
+              data-sidebar-panel="review"
+              role="tabpanel"
+              aria-labelledby="reviewTab"
+              hidden
+            >
+              <section class="review-hero">
+                <span
+                  class="review-check"
+                  id="reviewStatusIcon"
+                  aria-hidden="true"
+                  >—</span
+                >
+                <div>
+                  <span class="eyebrow">Quality control</span>
+                  <h2>Review decision</h2>
+                </div>
+              </section>
+
+              <section class="inspector-section review-panel">
+                <label class="field-label" for="reviewStatus">Status</label>
+                <select id="reviewStatus">
+                  <option value="not-reviewed">Not reviewed</option>
+                  <option value="needs-attention">Needs attention</option>
+                  <option value="approved">Approved</option>
+                </select>
+
+                <label class="field-label notes-label" for="reviewNotes"
+                  >Notes</label
+                >
+                <textarea
+                  id="reviewNotes"
+                  rows="7"
+                  placeholder="Add a finding or required correction..."
+                ></textarea>
+
+                <div class="saved-row" id="savedState">
+                  <span class="saved-dot" aria-hidden="true"></span>
+                  <span id="savedStateLabel">Saved on this device</span>
+                </div>
+
+                <button
+                  class="button primary full"
+                  id="exportReportButton"
+                  type="button"
+                >
+                  Export QC report
+                </button>
+              </section>
+            </section>
+          </div>
+
+          <footer class="sidebar-footer">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" />
+              <rect x="2.75" y="7" width="10.5" height="7" rx="2" />
+            </svg>
+            Files never leave this device
+          </footer>
         </aside>
       </div>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <dialog id="helpDialog">
+    <dialog id="helpDialog" aria-labelledby="helpTitle">
       <form method="dialog" class="dialog-card">
         <div class="dialog-heading">
           <div>
             <span class="eyebrow">Quick guide</span>
-            <h2>Review a BodyMaps case</h2>
+            <h2 id="helpTitle">Review a case</h2>
           </div>
           <button class="icon-button" value="close" aria-label="Close help">
             ×
           </button>
         </div>
         <ol class="help-steps">
-          <li>
-            <b>Open a case.</b> Select NIfTI files or a DICOM folder. Files
-            never leave this device.
-          </li>
-          <li>
-            <b>Inspect anatomy.</b> Scroll slices, right-drag to window, and use
-            the linked crosshair.
-          </li>
-          <li>
-            <b>Check segmentations.</b> Toggle, solo, search, flag and compare
-            quantitative statistics.
-          </li>
-          <li>
-            <b>Correct and report.</b> Paint an edit layer, export it as NIfTI,
-            and save a structured QC report.
-          </li>
+          <li><b>Open.</b> Choose NIfTI files or a DICOM folder.</li>
+          <li><b>Inspect.</b> Scroll slices and move the linked crosshair.</li>
+          <li><b>Compare.</b> Toggle structures and review measurements.</li>
+          <li><b>Decide.</b> Record findings and export the QC report.</li>
         </ol>
         <div class="shortcut-grid" aria-label="Keyboard shortcuts">
           <span><kbd>F</kbd> Four-up</span>
@@ -470,13 +624,11 @@
           <span><kbd>C</kbd> Coronal</span>
           <span><kbd>S</kbd> Sagittal</span>
           <span><kbd>V</kbd> 3D</span>
-          <span><kbd>1–9</kbd> Window presets</span>
+          <span><kbd>1–9</kbd> Window</span>
           <span><kbd>R</kbd> Ruler</span>
           <span><kbd>Esc</kbd> Inspect</span>
         </div>
-        <button class="button primary full" value="close">
-          Start reviewing
-        </button>
+        <button class="button primary full" value="close">Done</button>
       </form>
     </dialog>
 
