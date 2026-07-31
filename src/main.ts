@@ -66,6 +66,9 @@ const must = <T extends Element>(selector: string): T => {
 
 const canvas = must<HTMLCanvasElement>("#gl1");
 const body = document.body;
+const workspace = must<HTMLElement>(".workspace");
+const sidebarResizeHandle = must<HTMLElement>("#sidebarResizeHandle");
+const caseState = must<HTMLElement>("#caseState");
 const loadingOverlay = must<HTMLElement>("#loadingOverlay");
 const loadingTitle = must<HTMLElement>("#loadingTitle");
 const loadingDetail = must<HTMLElement>("#loadingDetail");
@@ -93,6 +96,7 @@ const reviewStatusIcon = must<HTMLElement>("#reviewStatusIcon");
 const savedState = must<HTMLElement>("#savedState");
 const savedStateLabel = must<HTMLElement>("#savedStateLabel");
 const helpDialog = must<HTMLDialogElement>("#helpDialog");
+const renderStatus = must<HTMLElement>("#renderStatus");
 const sidebarTabs = Array.from(
   document.querySelectorAll<HTMLButtonElement>("[data-sidebar-tab]"),
 );
@@ -111,6 +115,15 @@ let review: ReviewDraft = { ...EMPTY_REVIEW };
 let toastTimer = 0;
 let dragDepth = 0;
 let statsWorker: Worker | null = null;
+let inspectorWidth = 320;
+let pendingInspectorWidth = inspectorWidth;
+let inspectorResizeFrame = 0;
+let inspectorResizePointerId: number | null = null;
+
+const INSPECTOR_MIN_WIDTH = 260;
+const INSPECTOR_MAX_WIDTH = 420;
+const INSPECTOR_DEFAULT_WIDTH = 320;
+const INSPECTOR_STORAGE_KEY = "bodymaps-inspector-width";
 
 const nv = new Niivue({
   backColor: [0, 0, 0, 1],
@@ -156,16 +169,17 @@ function setLoading(title: string, detail: string, progress: number): void {
   const clamped = Math.max(0, Math.min(100, progress));
   progressBar.style.width = `${clamped}%`;
   progressTrack.setAttribute("aria-valuenow", String(clamped));
-  must<HTMLElement>("#caseState").textContent = "Loading";
-  must<HTMLElement>("#caseState").className = "ready-pill";
+  caseState.textContent = "Loading";
+  caseState.className = "ready-pill";
+  caseState.title = "Loading";
 }
 
 function setReady(message = "Ready"): void {
   body.dataset.loadState = "ready";
   loadingOverlay.classList.add("hidden");
-  const state = must<HTMLElement>("#caseState");
-  state.textContent = message;
-  state.className = "ready-pill ready";
+  caseState.textContent = message;
+  caseState.className = "ready-pill ready";
+  caseState.title = message;
 }
 
 function setError(message: string): void {
@@ -174,9 +188,9 @@ function setError(message: string): void {
   loadingDetail.textContent = message;
   progressBar.style.width = "100%";
   progressBar.style.background = "var(--danger)";
-  const state = must<HTMLElement>("#caseState");
-  state.textContent = "Error";
-  state.className = "ready-pill error";
+  caseState.textContent = "Error";
+  caseState.className = "ready-pill error";
+  caseState.title = "Error";
   showToast(message, true);
 }
 
@@ -521,7 +535,9 @@ async function calculateStatistics(): Promise<void> {
   );
   if (validStructures.length === 0) return;
 
-  must<HTMLElement>("#renderStatus").textContent = "Computing statistics…";
+  renderStatus.textContent = "Computing statistics";
+  renderStatus.title = "Computing statistics";
+  renderStatus.classList.add("busy");
   statsWorker?.terminate();
   const worker = new Worker(new URL("./stats.worker.ts", import.meta.url), {
     type: "module",
@@ -579,7 +595,9 @@ async function calculateStatistics(): Promise<void> {
   renderStructures();
   must<HTMLButtonElement>("#downloadStatsButton").disabled =
     results.length === 0;
-  must<HTMLElement>("#renderStatus").textContent = "WebGL2 · local";
+  renderStatus.textContent = "Viewer ready";
+  renderStatus.title = "Viewer ready";
+  renderStatus.classList.remove("busy");
 }
 
 function renderStructures(): void {
@@ -851,9 +869,7 @@ function updateReviewStatusVisual(): void {
 
 function updateSavedState(saved: boolean): void {
   savedState.classList.toggle("error", !saved);
-  savedStateLabel.textContent = saved
-    ? "Saved on this device"
-    : "Draft could not be saved";
+  savedStateLabel.textContent = saved ? "Saved" : "Not saved";
 }
 
 function loadReview(): void {
@@ -999,7 +1015,116 @@ function moveSidebarTab(
   if (nextTab) setSidebarPanel(nextTab.dataset.sidebarTab ?? "study", true);
 }
 
+function clampInspectorWidth(value: number): number {
+  return Math.round(
+    Math.min(INSPECTOR_MAX_WIDTH, Math.max(INSPECTOR_MIN_WIDTH, value)),
+  );
+}
+
+function applyInspectorWidth(width: number, persist = false): void {
+  inspectorWidth = clampInspectorWidth(width);
+  workspace.style.setProperty("--inspector-width", `${inspectorWidth}px`);
+  sidebarResizeHandle.setAttribute("aria-valuenow", String(inspectorWidth));
+  sidebarResizeHandle.setAttribute(
+    "aria-valuetext",
+    `${inspectorWidth} pixels`,
+  );
+  if (!persist) return;
+  try {
+    localStorage.setItem(INSPECTOR_STORAGE_KEY, String(inspectorWidth));
+  } catch {
+    // Resizing remains available when browser storage is disabled.
+  }
+}
+
+function queueInspectorWidth(width: number): void {
+  pendingInspectorWidth = width;
+  if (inspectorResizeFrame) return;
+  inspectorResizeFrame = window.requestAnimationFrame(() => {
+    inspectorResizeFrame = 0;
+    applyInspectorWidth(pendingInspectorWidth);
+  });
+}
+
+function flushInspectorWidth(persist = false): void {
+  if (inspectorResizeFrame) {
+    window.cancelAnimationFrame(inspectorResizeFrame);
+    inspectorResizeFrame = 0;
+    applyInspectorWidth(pendingInspectorWidth, persist);
+    return;
+  }
+  if (persist) applyInspectorWidth(inspectorWidth, true);
+}
+
+function bindInspectorResize(): void {
+  try {
+    const storedWidth = Number(localStorage.getItem(INSPECTOR_STORAGE_KEY));
+    if (Number.isFinite(storedWidth) && storedWidth > 0) {
+      applyInspectorWidth(storedWidth);
+    }
+  } catch {
+    applyInspectorWidth(INSPECTOR_DEFAULT_WIDTH);
+  }
+
+  sidebarResizeHandle.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    inspectorResizePointerId = event.pointerId;
+    sidebarResizeHandle.setPointerCapture(event.pointerId);
+    body.classList.add("is-resizing");
+    event.preventDefault();
+  });
+
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== inspectorResizePointerId) return;
+    const workspaceRect = workspace.getBoundingClientRect();
+    const workspacePadding = Number.parseFloat(
+      window.getComputedStyle(workspace).paddingLeft,
+    );
+    queueInspectorWidth(event.clientX - workspaceRect.left - workspacePadding);
+  });
+
+  const finishResize = (event: PointerEvent) => {
+    if (event.pointerId !== inspectorResizePointerId) return;
+    inspectorResizePointerId = null;
+    flushInspectorWidth(true);
+    if (sidebarResizeHandle.hasPointerCapture(event.pointerId)) {
+      sidebarResizeHandle.releasePointerCapture(event.pointerId);
+    }
+    body.classList.remove("is-resizing");
+  };
+
+  window.addEventListener("pointerup", finishResize);
+  window.addEventListener("pointercancel", finishResize);
+  sidebarResizeHandle.addEventListener("lostpointercapture", (event) => {
+    if (event.pointerId !== inspectorResizePointerId) return;
+    inspectorResizePointerId = null;
+    flushInspectorWidth(true);
+    body.classList.remove("is-resizing");
+  });
+  window.addEventListener("blur", () => {
+    if (inspectorResizePointerId === null) return;
+    inspectorResizePointerId = null;
+    flushInspectorWidth(true);
+    body.classList.remove("is-resizing");
+  });
+  sidebarResizeHandle.addEventListener("dblclick", () => {
+    applyInspectorWidth(INSPECTOR_DEFAULT_WIDTH, true);
+  });
+  sidebarResizeHandle.addEventListener("keydown", (event) => {
+    const step = event.shiftKey ? 32 : 16;
+    let nextWidth: number | null = null;
+    if (event.key === "ArrowLeft") nextWidth = inspectorWidth - step;
+    if (event.key === "ArrowRight") nextWidth = inspectorWidth + step;
+    if (event.key === "Home") nextWidth = INSPECTOR_MIN_WIDTH;
+    if (event.key === "End") nextWidth = INSPECTOR_MAX_WIDTH;
+    if (nextWidth === null) return;
+    applyInspectorWidth(nextWidth, true);
+    event.preventDefault();
+  });
+}
+
 function bindInterface(): void {
+  bindInspectorResize();
   must<HTMLButtonElement>("#openCaseButton").addEventListener("click", () =>
     fileInput.click(),
   );
