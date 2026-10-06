@@ -1,6 +1,6 @@
 # Security policy
 
-## Supported version
+## Supported versions
 
 The current `main` branch is supported.
 
