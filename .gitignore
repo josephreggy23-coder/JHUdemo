@@ -8,3 +8,5 @@ coverage/
 *.local
 *.tsbuildinfo
 npm-debug.log*
+.env
+.env.*
