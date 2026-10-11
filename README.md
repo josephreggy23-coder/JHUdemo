@@ -74,6 +74,8 @@ npm audit
 
 Continuous integration runs the same checks for every pull request.
 
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
 ## Implementation
 
 - [NiiVue 0.69.0](https://github.com/niivue/niivue) for NIfTI parsing and
