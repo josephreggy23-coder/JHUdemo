@@ -66,6 +66,7 @@ The development server prints the local address.
 ## Checks
 
 ```bash
+npm run format:check
 npm test
 npm run typecheck
 npm run build
