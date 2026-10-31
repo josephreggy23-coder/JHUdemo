@@ -61,7 +61,8 @@ npm ci
 npm run dev
 ```
 
-The development server prints the local address.
+The development server prints the local address. To serve the production
+build locally instead, run `npm run build` followed by `npm run preview`.
 
 ## Checks
 
