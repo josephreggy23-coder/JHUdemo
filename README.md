@@ -103,6 +103,10 @@ calculation rules.
 | `R`           | Distance ruler                   |
 | `Esc`         | Inspect mode                     |
 
+When the sidebar resize handle has focus, `←` and `→` adjust its width (hold
+`Shift` for larger steps) and `Home` or `End` jump to the narrowest or widest
+setting. Double-click the handle to restore the default width.
+
 ## Limits
 
 - This is a research application, not a diagnostic medical device.
