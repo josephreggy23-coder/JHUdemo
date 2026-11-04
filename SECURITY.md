@@ -7,7 +7,8 @@ The current `main` branch is supported.
 ## Reporting a vulnerability
 
 Please use GitHub's private vulnerability-reporting feature for this
-repository. Do not include patient data, clinical scans, credentials, or other
+repository ([report a vulnerability](https://github.com/josephreggy23-coder/JHUdemo/security/advisories/new)).
+Do not include patient data, clinical scans, credentials, or other
 sensitive information in a report.
 
 ## Privacy model
