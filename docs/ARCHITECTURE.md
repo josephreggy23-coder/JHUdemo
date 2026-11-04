@@ -27,6 +27,8 @@ Correction drawing ────────────────────�
   results away from the interaction thread.
 - `src/review.ts` creates stable local-storage keys and versioned QC reports.
 - `src/main.ts` is the NiiVue adapter and accessible DOM controller.
+- `public/sw.js` caches the application shell so the viewer works offline after
+  the first successful load.
 
 ## Medical-image rules
 
